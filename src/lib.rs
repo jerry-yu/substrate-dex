@@ -473,11 +473,13 @@ pub mod pallet {
             currency_amount: BalanceOf<T>,
             min_liquidity: AssetBalanceOf<T>,
             max_tokens: AssetBalanceOf<T>,
-            deadline: T::BlockNumber,
+            deadline: Option<T::BlockNumber>,
         ) -> DispatchResult {
             // -------------------------- Validation part --------------------------
             let caller = ensure_signed(origin)?;
-            Self::check_deadline(&deadline)?;
+            if let Some(deadline) = deadline {
+                Self::check_deadline(&deadline)?;
+            }
             ensure!(currency_amount > Zero::zero(), Error::<T>::CurrencyAmountIsZero);
             ensure!(max_tokens > Zero::zero(), Error::<T>::MaxTokensIsZero);
             ensure!(min_liquidity > Zero::zero(), Error::<T>::MinLiquidityIsZero);
@@ -542,11 +544,13 @@ pub mod pallet {
             liquidity_amount: AssetBalanceOf<T>,
             min_currency: BalanceOf<T>,
             min_tokens: AssetBalanceOf<T>,
-            deadline: T::BlockNumber,
+            deadline: Option<T::BlockNumber>,
         ) -> DispatchResult {
             // -------------------------- Validation part --------------------------
             let caller = ensure_signed(origin)?;
-            Self::check_deadline(&deadline)?;
+            if let Some(deadline) = deadline {
+                Self::check_deadline(&deadline)?;
+            }
             ensure!(liquidity_amount > Zero::zero(), Error::<T>::LiquidityAmountIsZero);
             ensure!(min_currency > Zero::zero(), Error::<T>::MinCurrencyIsZero);
             ensure!(min_tokens > Zero::zero(), Error::<T>::MinTokensIsZero);
@@ -607,13 +611,15 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
             amount: TradeAmount<BalanceOf<T>, AssetBalanceOf<T>>,
-            deadline: T::BlockNumber,
+            deadline: Option<T::BlockNumber>,
             recipient: Option<AccountIdOf<T>>,
         ) -> DispatchResult {
             // -------------------------- Validation part --------------------------
             let caller = ensure_signed(origin)?;
             let recipient = recipient.unwrap_or_else(|| caller.clone());
-            Self::check_deadline(&deadline)?;
+            if let Some(deadline) = deadline {
+                Self::check_deadline(&deadline)?;
+            }
             Self::check_trade_amount(&amount)?;
             let exchange = Self::get_exchange(&asset_id)?;
 
@@ -663,13 +669,15 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
             amount: TradeAmount<AssetBalanceOf<T>, BalanceOf<T>>,
-            deadline: T::BlockNumber,
+            deadline: Option<T::BlockNumber>,
             recipient: Option<AccountIdOf<T>>,
         ) -> DispatchResult {
             // -------------------------- Validation part --------------------------
             let caller = ensure_signed(origin)?;
             let recipient = recipient.unwrap_or_else(|| caller.clone());
-            Self::check_deadline(&deadline)?;
+            if let Some(deadline) = deadline {
+                Self::check_deadline(&deadline)?;
+            }
             Self::check_trade_amount(&amount)?;
             let exchange = Self::get_exchange(&asset_id)?;
 
@@ -719,13 +727,15 @@ pub mod pallet {
             sold_asset_id: AssetIdOf<T>,
             bought_asset_id: AssetIdOf<T>,
             amount: TradeAmount<AssetBalanceOf<T>, AssetBalanceOf<T>>,
-            deadline: T::BlockNumber,
+            deadline: Option<T::BlockNumber>,
             recipient: Option<AccountIdOf<T>>,
         ) -> DispatchResult {
             // -------------------------- Validation part --------------------------
             let caller = ensure_signed(origin)?;
             let recipient = recipient.unwrap_or_else(|| caller.clone());
-            Self::check_deadline(&deadline)?;
+            if let Some(deadline) = deadline {
+                Self::check_deadline(&deadline)?;
+            }
             Self::check_trade_amount(&amount)?;
             let sold_asset_exchange = Self::get_exchange(&sold_asset_id)?;
             let bought_asset_exchange = Self::get_exchange(&bought_asset_id)?;
