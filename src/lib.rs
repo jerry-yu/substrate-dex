@@ -40,8 +40,8 @@ pub mod pallet {
         pallet_prelude::*,
         sp_runtime::{
             traits::{
-                AccountIdConversion, CheckedAdd, CheckedMul, CheckedSub, Convert, One, Saturating,
-                Zero,
+                AccountIdConversion, CheckedMul, CheckedSub, Convert, One, Saturating,
+                UniqueSaturatedInto, UniqueSaturatedFrom,Zero,
             },
             FixedPointNumber, FixedPointOperand, FixedU128,
         },
@@ -53,6 +53,7 @@ pub mod pallet {
         transactional, PalletId,
     };
     use frame_system::pallet_prelude::*;
+    use sp_core::U256;
     use sp_std::fmt::Debug;
 
     #[pallet::pallet]
@@ -839,18 +840,31 @@ pub mod pallet {
         ) -> Result<BalanceOf<T>, Error<T>> {
             debug_assert!(!input_reserve.is_zero());
             debug_assert!(!output_reserve.is_zero());
+
+            let input_amount =
+                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*input_amount));
+            let input_reserve = U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*input_reserve));
+            let net_amount_numerator = U256::from(
+                UniqueSaturatedInto::<u128>::unique_saturated_into(T::net_amount_numerator()),
+            );
+            let output_reserve =
+                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*output_reserve));
+            let provided_denominator = U256::from(
+                UniqueSaturatedInto::<u128>::unique_saturated_into(T::ProviderFeeDenominator::get()),
+            );
+
             let input_amount_with_fee = input_amount
-                .checked_mul(&T::net_amount_numerator())
+                .checked_mul(net_amount_numerator)
                 .ok_or(Error::Overflow)?;
             let numerator = input_amount_with_fee
                 .checked_mul(output_reserve)
                 .ok_or(Error::Overflow)?;
             let denominator = input_reserve
-                .checked_mul(&T::ProviderFeeDenominator::get())
+                .checked_mul(provided_denominator)
                 .ok_or(Error::Overflow)?
-                .checked_add(&input_amount_with_fee)
+                .checked_add(input_amount_with_fee)
                 .ok_or(Error::Overflow)?;
-            Ok(numerator / denominator)
+            Ok(UniqueSaturatedFrom::unique_saturated_from((numerator / denominator).low_u128()))
         }
 
         pub(crate) fn get_input_amount(
