@@ -40,8 +40,8 @@ pub mod pallet {
         pallet_prelude::*,
         sp_runtime::{
             traits::{
-                AccountIdConversion, CheckedMul, CheckedSub, Convert, One, Saturating,
-                UniqueSaturatedInto, UniqueSaturatedFrom,Zero,
+                AccountIdConversion, CheckedSub, Convert, One, Saturating, UniqueSaturatedFrom,
+                UniqueSaturatedInto, Zero,
             },
             FixedPointNumber, FixedPointOperand, FixedU128,
         },
@@ -843,12 +843,15 @@ pub mod pallet {
 
             let input_amount =
                 U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*input_amount));
-            let input_reserve = U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*input_reserve));
+            let input_reserve =
+                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*input_reserve));
+
+            let output_reserve =
+                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*output_reserve));
+
             let net_amount_numerator = U256::from(
                 UniqueSaturatedInto::<u128>::unique_saturated_into(T::net_amount_numerator()),
             );
-            let output_reserve =
-                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*output_reserve));
             let provided_denominator = U256::from(
                 UniqueSaturatedInto::<u128>::unique_saturated_into(T::ProviderFeeDenominator::get()),
             );
@@ -875,16 +878,34 @@ pub mod pallet {
             debug_assert!(!input_reserve.is_zero());
             debug_assert!(!output_reserve.is_zero());
             ensure!(output_amount < output_reserve, Error::<T>::NotEnoughLiquidity);
+
+            let output_amount =
+                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*output_amount));
+
+            let input_reserve =
+                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*input_reserve));
+
+            let output_reserve =
+                U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(*output_reserve));
+
+            let net_amount_numerator = U256::from(
+                UniqueSaturatedInto::<u128>::unique_saturated_into(T::net_amount_numerator()),
+            );
+            let provided_denominator = U256::from(
+                UniqueSaturatedInto::<u128>::unique_saturated_into(T::ProviderFeeDenominator::get()),
+            );
+
             let numerator = input_reserve
                 .checked_mul(output_amount)
                 .ok_or(Error::Overflow)?
-                .checked_mul(&T::ProviderFeeDenominator::get())
+                .checked_mul(provided_denominator)
                 .ok_or(Error::Overflow)?;
             let denominator = output_reserve
-                .saturating_sub(*output_amount)
-                .checked_mul(&T::net_amount_numerator())
+                .saturating_sub(output_amount)
+                .checked_mul(net_amount_numerator)
                 .ok_or(Error::Overflow)?;
-            Ok((numerator / denominator).saturating_add(<BalanceOf<T>>::one()))
+
+            Ok(UniqueSaturatedFrom::unique_saturated_from((numerator / denominator).low_u128() + 1))
         }
 
         fn get_currency_to_asset_price(
